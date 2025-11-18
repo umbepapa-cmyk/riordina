@@ -5,12 +5,17 @@ Questo script Python automatizza l'organizzazione e la rinomina dei file in una 
 Funzionalità
 
 Analisi Testuale: Legge e comprende il contenuto di PDF, DOCX, TXT e fogli Excel.
+  - **PDF Robusto**: Utilizza un doppio metodo di estrazione (pdfplumber + pypdfium2) per massimizzare la compatibilità con diversi tipi di PDF
+  - **Rilevamento PDF Immagine**: Identifica automaticamente i PDF basati su immagini (documenti scannerizzati senza OCR)
+  - **Codifiche Multiple**: Supporta diverse codifiche per file TXT (utf-8, latin-1, cp1252, iso-8859-1)
 
 Visione Artificiale: "Guarda" le immagini (PNG, JPG, ecc.) per generare titoli descrittivi basati sul contenuto visivo.
 
 Rinomina Automatica: Rinomina i file con titoli chiari, concisi e in italiano, eliminando codici oscuri.
 
 Sicurezza: Utilizza variabili d'ambiente per proteggere la chiave API.
+
+Gestione Errori Migliorata: Messaggi informativi che spiegano perché un file non può essere elaborato.
 
 Requisiti
 
@@ -51,3 +56,26 @@ Utilizzo
 Esegui lo script principale:
 
 python Riordina.py
+
+
+Risoluzione Problemi
+
+**PDF non interpretati correttamente**
+
+Lo script usa un sistema a due livelli per estrarre testo dai PDF:
+
+1. **Primo tentativo**: pdfplumber (metodo principale)
+2. **Fallback automatico**: pypdfium2 (se pdfplumber fallisce)
+3. **Identificazione PDF immagine**: Se nessun metodo trova testo, il PDF potrebbe essere basato su immagini (documento scannerizzato)
+
+**Messaggi di errore comuni**
+
+- `"PDF vuoto o senza pagine"`: Il file PDF non contiene pagine leggibili
+- `"pypdfium2 non ha trovato testo (potrebbe essere un PDF basato su immagini)"`: Il PDF è probabilmente un documento scannerizzato senza OCR
+- `"Impossibile decodificare il file TXT con le codifiche comuni"`: Il file TXT usa una codifica non standard
+
+**Tipi di file supportati**
+
+- **Documenti**: PDF, DOCX, TXT
+- **Fogli di calcolo**: XLSX, XLS
+- **Immagini**: PNG, JPG, JPEG, BMP, WEBP
