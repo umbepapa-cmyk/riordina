@@ -1,6 +1,7 @@
-google-generativeai
+google-genai
 pdfplumber
 python-docx
 openpyxl
 Pillow
 python-dotenv
+cffi>=1.16.0
