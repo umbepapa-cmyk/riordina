@@ -32,10 +32,19 @@ MAX_RETRIES = 5         # Massimo tentativi per la logica di retry manuale
 
 # Controlli di sicurezza per assicurarsi che .env sia stato letto
 if not GEMINI_API_KEY:
-    print("ERRORE: GEMINI_API_KEY non trovata. Assicurati che sia nel file .env")
+    print("ERRORE: GEMINI_API_KEY non trovata nel file .env")
+    print("Soluzione:")
+    print("  1. Assicurati di eseguire lo script dalla cartella del progetto")
+    print("  2. Crea il file .env copiando .env.example: cp .env.example .env")
+    print("  3. Modifica il file .env e inserisci la tua chiave API di Google Gemini")
+    print("     Ottieni una chiave gratuita da: https://makersuite.google.com/app/apikey")
     sys.exit(1)
 if not CARTELLA_DA_ESAMINARE:
-    print("ERRORE: CARTELLA_DA_ESAMINARE non trovata. Assicurati che sia nel file .env")
+    print("ERRORE: CARTELLA_DA_ESAMINARE non trovata nel file .env")
+    print("Soluzione:")
+    print("  1. Apri il file .env")
+    print("  2. Aggiungi la riga: CARTELLA_DA_ESAMINARE=/percorso/completo/della/cartella")
+    print("  3. Sostituisci il percorso con quello della cartella da esaminare")
     sys.exit(1)
 
 
