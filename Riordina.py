@@ -6,8 +6,7 @@ import docx
 import re
 import time
 import sys
-import openpyxl 
-from PIL import Image
+import openpyxl
 
 # --- NUOVE IMPORTAZIONI PER .ENV e GOOGLE ---
 from dotenv import load_dotenv
@@ -164,8 +163,22 @@ def analizza_e_titola_immagine_gemini(percorso_file, client):
     Gestisce il retry manuale.
     """
     try:
-        # --- CORREZIONE: Ora 'percorso_file' è definito ---
-        img = Image.open(percorso_file)
+        # Carica l'immagine e convertila in bytes
+        with open(percorso_file, 'rb') as f:
+            image_bytes = f.read()
+        
+        # Determina il mime type dall'estensione
+        estensione = os.path.splitext(percorso_file)[1].lower()
+        mime_type_map = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.bmp': 'image/bmp',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif'
+        }
+        mime_type = mime_type_map.get(estensione, 'image/jpeg')
+        
     except Exception as e:
         print(f"ERRORE: Impossibile aprire l'immagine '{os.path.basename(percorso_file)}'. Motivo: {e}")
         return None
@@ -187,10 +200,16 @@ def analizza_e_titola_immagine_gemini(percorso_file, client):
 
     for attempt in range(MAX_RETRIES):
         try:
-            # La chiamata API multimodale
+            # Crea un Part object dall'immagine usando from_bytes
+            image_part = types.Part.from_bytes(
+                data=image_bytes,
+                mime_type=mime_type
+            )
+            
+            # La chiamata API multimodale con il Part object corretto
             response = client.models.generate_content(
                 model=GEMINI_MODEL, 
-                contents=[prompt_immagine, img], # Lista con prompt e immagine
+                contents=[prompt_immagine, image_part], # Lista con prompt e immagine Part
                 config={"temperature": 0.2}
             )
             return response.text.strip() # Successo
@@ -237,13 +256,21 @@ if not os.path.exists(CARTELLA_DA_ESAMINARE):
 
 file_rinominati = 0
 file_analizzati = 0
+file_saltati = 0
 
 # Definisci le estensioni supportate
 ESTENSIONI_TESTO = [".pdf", ".docx", ".txt", ".xlsx", ".xls"]
-ESTENSIONI_IMMAGINI = [".png", ".jpg", ".jpeg", ".bmp", ".webp"]
+ESTENSIONI_IMMAGINI = [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".gif"]
+
+# File da ignorare
+FILE_DA_IGNORARE = [".env", ".gitignore", ".git"]
 
 # SCANSIONA LA CARTELLA
 for nome_file_attuale in os.listdir(CARTELLA_DA_ESAMINARE):
+    
+    # Salta file nascosti e file di configurazione
+    if nome_file_attuale.startswith('.') or nome_file_attuale in FILE_DA_IGNORARE:
+        continue
     
     percorso_vecchio = os.path.join(CARTELLA_DA_ESAMINARE, nome_file_attuale)
     
@@ -254,6 +281,13 @@ for nome_file_attuale in os.listdir(CARTELLA_DA_ESAMINARE):
     estensione = estensione.lower()
 
     nuovo_nome_base = None
+    
+    # Verifica se l'estensione è supportata
+    if estensione not in ESTENSIONI_TESTO and estensione not in ESTENSIONI_IMMAGINI:
+        if estensione:  # Solo se il file ha un'estensione
+            print(f"\n[SALTA] Tipo di file non supportato: '{nome_file_attuale}' (estensione: {estensione})")
+        file_saltati += 1
+        continue
 
     # --- Blocco 1: Gestione File di Testo ---
     if estensione in ESTENSIONI_TESTO:
@@ -317,3 +351,4 @@ print("---")
 print(f"Operazione completata.")
 print(f"File analizzati (documenti e immagini): {file_analizzati}")
 print(f"File rinominati: {file_rinominati}")
+print(f"File saltati (non supportati o errori): {file_saltati}")
