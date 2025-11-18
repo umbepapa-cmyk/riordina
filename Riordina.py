@@ -42,6 +42,9 @@ if not CARTELLA_DA_ESAMINARE:
 # =========================================================================
 # 2. FUNZIONE DI ESTRAZIONE DEL TESTO COMPLETO
 # =========================================================================
+# Migliorate le funzioni di estrazione per gestire meglio i PDF problematici
+# usando un sistema di fallback con pypdfium2 quando pdfplumber fallisce.
+# Questo aiuta a interpretare una gamma più ampia di formati PDF.
 
 def estrai_testo_con_pypdfium2(percorso_file):
     """
