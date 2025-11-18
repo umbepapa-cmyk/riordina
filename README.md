@@ -38,16 +38,31 @@ pip install -r requirements.txt
 
 Configurazione
 
-Crea un file chiamato .env nella cartella principale del progetto.
+Crea un file chiamato .env nella cartella principale del progetto copiando il template fornito:
 
-Inserisci le seguenti variabili:
+cp .env.example .env
 
-GEMINI_API_KEY="La_Tua_Chiave_API_Qui"
-CARTELLA_DA_ESAMINARE="C:\Percorso\Della\Tua\Cartella"
+
+Modifica il file .env con i tuoi valori:
+
+Ottieni una chiave API gratuita di Google Gemini da: https://makersuite.google.com/app/apikey
+
+Inserisci la tua chiave API e il percorso della cartella da esaminare nel file .env:
+
+GEMINI_API_KEY=la_tua_chiave_api_qui
+CARTELLA_DA_ESAMINARE=/percorso/completo/della/tua/cartella
+
+Note:
+
+Non utilizzare virgolette attorno ai valori
+
+Utilizza percorsi assoluti per CARTELLA_DA_ESAMINARE
+
+Il file .env non viene tracciato da git per proteggere la tua chiave API
 
 
 Utilizzo
 
-Esegui lo script principale:
+IMPORTANTE: Esegui lo script dalla cartella principale del progetto (dove si trova il file .env):
 
 python Riordina.py
