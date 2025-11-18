@@ -1,0 +1,18 @@
+Ambiente virtuale
+
+/.venv
+
+File di ambiente con segreti
+
+.env
+
+Cache di Python
+
+pycache/
+*.pyc
+*.pyo
+*.pyd
+
+Impostazioni specifiche dell'editor
+
+.vscode/
