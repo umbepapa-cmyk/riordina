@@ -229,6 +229,7 @@ except Exception as e:
 print(f"--- Agente di Rinomina (MODALITÀ AUTOMATICA) avviato ---")
 print(f"Cartella sotto osservazione: {CARTELLA_DA_ESAMINARE}")
 print(f"NOTA: Analizzo i primi {TESTO_MAX_CHAR} caratteri dei documenti e le immagini.")
+print(f"NOTA: Analizzo anche le sottocartelle in modo ricorsivo.")
 print("---")
 
 if not os.path.exists(CARTELLA_DA_ESAMINARE):
@@ -242,75 +243,73 @@ file_analizzati = 0
 ESTENSIONI_TESTO = [".pdf", ".docx", ".txt", ".xlsx", ".xls"]
 ESTENSIONI_IMMAGINI = [".png", ".jpg", ".jpeg", ".bmp", ".webp"]
 
-# SCANSIONA LA CARTELLA
-for nome_file_attuale in os.listdir(CARTELLA_DA_ESAMINARE):
-    
-    percorso_vecchio = os.path.join(CARTELLA_DA_ESAMINARE, nome_file_attuale)
-    
-    if not os.path.isfile(percorso_vecchio):
-        continue
+# SCANSIONA LA CARTELLA E LE SOTTOCARTELLE
+for cartella_corrente, sottocartelle, file_in_cartella in os.walk(CARTELLA_DA_ESAMINARE):
+    for nome_file_attuale in file_in_cartella:
         
-    nome_base, estensione = os.path.splitext(nome_file_attuale)
-    estensione = estensione.lower()
-
-    nuovo_nome_base = None
-
-    # --- Blocco 1: Gestione File di Testo ---
-    if estensione in ESTENSIONI_TESTO:
-        file_analizzati += 1
-        testo_documento = estrai_testo_completo_dal_file(percorso_vecchio)
+        percorso_vecchio = os.path.join(cartella_corrente, nome_file_attuale)
         
-        if testo_documento:
-            print(f"\n[Analisi Testo] File: '{nome_file_attuale}'")
-            print(f"  > Testo inviato: '{testo_documento[:80]}...'")
-            nuovo_nome_base = analizza_e_titola_gemini(testo_documento, gemini_client)
-            time.sleep(0.5) 
-        else:
-            print(f"\n[SALTA] Impossibile leggere il testo da '{nome_file_attuale}'")
+        nome_base, estensione = os.path.splitext(nome_file_attuale)
+        estensione = estensione.lower()
 
-    # --- Blocco 2: Gestione File Immagine ---
-    elif estensione in ESTENSIONI_IMMAGINI:
-        file_analizzati += 1
-        print(f"\n[Analisi Immagine] File: '{nome_file_attuale}'")
-        # --- CORREZIONE: Passiamo 'percorso_vecchio' alla funzione ---
-        nuovo_nome_base = analizza_e_titola_immagine_gemini(percorso_vecchio, gemini_client)
-        time.sleep(0.5)
+        nuovo_nome_base = None
 
-    # --- Blocco 3: Logica di Rinomina (Unificata) ---
-    if nuovo_nome_base:
+        # --- Blocco 1: Gestione File di Testo ---
+        if estensione in ESTENSIONI_TESTO:
+            file_analizzati += 1
+            testo_documento = estrai_testo_completo_dal_file(percorso_vecchio)
+            
+            if testo_documento:
+                print(f"\n[Analisi Testo] File: '{percorso_vecchio}'")
+                print(f"  > Testo inviato: '{testo_documento[:80]}...'")
+                nuovo_nome_base = analizza_e_titola_gemini(testo_documento, gemini_client)
+                time.sleep(0.5) 
+            else:
+                print(f"\n[SALTA] Impossibile leggere il testo da '{percorso_vecchio}'")
+
+        # --- Blocco 2: Gestione File Immagine ---
+        elif estensione in ESTENSIONI_IMMAGINI:
+            file_analizzati += 1
+            print(f"\n[Analisi Immagine] File: '{percorso_vecchio}'")
+            # --- CORREZIONE: Passiamo 'percorso_vecchio' alla funzione ---
+            nuovo_nome_base = analizza_e_titola_immagine_gemini(percorso_vecchio, gemini_client)
+            time.sleep(0.5)
+
+        # --- Blocco 3: Logica di Rinomina (Unificata) ---
+        if nuovo_nome_base:
+            
+            # Pulizia e gestione della lunghezza
+            nuovo_nome_base_pulito = re.sub(r'[\\/*?:"<>|]', '_', nuovo_nome_base)
+            if len(nuovo_nome_base_pulito) > 150:
+                nuovo_nome_base_pulito = nuovo_nome_base_pulito[:150].strip()
+
+            # Evita rinomina se il nome è già uguale
+            if nuovo_nome_base_pulito.lower() == nome_base.lower():
+                print(f"  > Titolo Analizzato: '{nuovo_nome_base_pulito}'")
+                print(f"[SALTA] Il nome non richiede modifiche.")
+                continue
+
+            # Assemblaggio e gestione duplicati
+            nuovo_nome_file = f"{nuovo_nome_base_pulito}{estensione}"
+            percorso_nuovo = os.path.join(cartella_corrente, nuovo_nome_file)
+            
+            i = 1
+            temp_nome_base = nuovo_nome_base_pulito
+            while os.path.exists(percorso_nuovo):
+                nuovo_nome_file = f"{temp_nome_base}_{i}{estensione}"
+                percorso_nuovo = os.path.join(cartella_corrente, nuovo_nome_file)
+                i += 1
+            
+            try:
+                os.rename(percorso_vecchio, percorso_nuovo)
+                print(f"  > Titolo Analizzato: '{nuovo_nome_base_pulito}'")
+                print(f"[RINOMINATO] '{nome_file_attuale}'  ->  '{nuovo_nome_file}'")
+                file_rinominati += 1
+            except Exception as e:
+                print(f"[ERRORE RINOMINA] Impossibile rinominare '{nome_file_attuale}': {e}")
         
-        # Pulizia e gestione della lunghezza
-        nuovo_nome_base_pulito = re.sub(r'[\\/*?:"<>|]', '_', nuovo_nome_base)
-        if len(nuovo_nome_base_pulito) > 150:
-            nuovo_nome_base_pulito = nuovo_nome_base_pulito[:150].strip()
-
-        # Evita rinomina se il nome è già uguale
-        if nuovo_nome_base_pulito.lower() == nome_base.lower():
-            print(f"  > Titolo Analizzato: '{nuovo_nome_base_pulito}'")
-            print(f"[SALTA] Il nome non richiede modifiche.")
-            continue
-
-        # Assemblaggio e gestione duplicati
-        nuovo_nome_file = f"{nuovo_nome_base_pulito}{estensione}"
-        percorso_nuovo = os.path.join(CARTELLA_DA_ESAMINARE, nuovo_nome_file)
-        
-        i = 1
-        temp_nome_base = nuovo_nome_base_pulito
-        while os.path.exists(percorso_nuovo):
-            nuovo_nome_file = f"{temp_nome_base}_{i}{estensione}"
-            percorso_nuovo = os.path.join(CARTELLA_DA_ESAMINARE, nuovo_nome_file)
-            i += 1
-        
-        try:
-            os.rename(percorso_vecchio, percorso_nuovo)
-            print(f"  > Titolo Analizzato: '{nuovo_nome_base_pulito}'")
-            print(f"[RINOMINATO] '{nome_file_attuale}'  ->  '{nuovo_nome_file}'")
-            file_rinominati += 1
-        except Exception as e:
-            print(f"[ERRORE RINOMINA] Impossibile rinominare '{nome_file_attuale}': {e}")
-    
-    elif estensione in ESTENSIONI_TESTO or estensione in ESTENSIONI_IMMAGINI:
-         print(f"  > L'analisi IA ha restituito un risultato non valido o ha fallito dopo i tentativi. Salto la rinomina.")
+        elif estensione in ESTENSIONI_TESTO or estensione in ESTENSIONI_IMMAGINI:
+             print(f"  > L'analisi IA ha restituito un risultato non valido o ha fallito dopo i tentativi. Salto la rinomina.")
 
 
 print("---")
